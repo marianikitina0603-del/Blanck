@@ -88,6 +88,15 @@
       const data=collectStudentData();
       const msg=document.getElementById('msg');
       if(!data.student_surname||!data.student_name||!data.student_class){msg.textContent='Заполните фамилию, имя и класс';return}
+
+      const missingAnswers=[];
+      for(let n=1;n<=19;n++) if(!String((data.answers&&data.answers[n])||'').trim()) missingAnswers.push(n);
+      if(missingAnswers.length){
+        const list=missingAnswers.join(', ');
+        const ok=confirm('Не заполнены ответы на задания: '+list+'.\n\nОтправить работу всё равно?');
+        if(!ok){msg.textContent='Отправка отменена. Заполните пропущенные ответы.';return}
+      }
+
       if(!client){msg.textContent='База ещё не подключена учителем';return}
       const workId=crypto.randomUUID();
       const paths=[];
