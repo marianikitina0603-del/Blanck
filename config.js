@@ -1,5 +1,5 @@
-// Настройки Supabase. Anon key безопасно использовать на публичной странице при включённом RLS.
+// Настройки Supabase. Добавьте только публичный Publishable key проекта.
 window.BLANCK_CONFIG = {
-  supabaseUrl: "PASTE_SUPABASE_PROJECT_URL_HERE",
-  supabaseAnonKey: "PASTE_SUPABASE_ANON_KEY_HERE"
+  supabaseUrl: "https://cuafunuvqubtbvycefht.supabase.co",
+  supabaseAnonKey: "PASTE_SUPABASE_PUBLISHABLE_KEY_HERE"
 };
