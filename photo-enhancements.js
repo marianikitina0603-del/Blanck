@@ -2,6 +2,7 @@
   const MAX_PHOTOS=10;
   const MAX_SIZE=10*1024*1024;
   const BUCKET='submission-photos';
+  const CURRENT_CELL_COUNT=537;
 
   function getClient(){
     try{ if(typeof db!=='undefined' && db) return db; }catch(e){}
@@ -115,6 +116,29 @@
     };
   }
 
+  function makeDisplayCells(count){
+    return '<div class="cells">'+Array.from({length:count},()=>'<div class="cell"></div>').join('')+'</div>';
+  }
+
+  function prepareExactTeacherBlank(host){
+    const blank=host.querySelector('.blank');
+    if(!blank) return null;
+    const personalRows=blank.querySelectorAll('.personal .p-row');
+    if(personalRows.length>=4){
+      personalRows[3].innerHTML='<div class="p-label">Серия</div><div style="display:flex;align-items:center;gap:12px">'+makeDisplayCells(4)+'<div class="p-label" style="margin-left:10px">Номер</div>'+makeDisplayCells(6)+'</div>';
+    }
+    return blank;
+  }
+
+  function restoreExactTeacherCells(blank,formState){
+    const vals=formState&&Array.isArray(formState.cells)?formState.cells:null;
+    if(!vals||vals.length!==CURRENT_CELL_COUNT) return false;
+    const target=[...blank.querySelectorAll('.cell')];
+    if(target.length!==CURRENT_CELL_COUNT) return false;
+    target.forEach((c,i)=>c.textContent=vals[i]||'');
+    return true;
+  }
+
   function setupTeacher(){
     if(!document.getElementById('tbody')||!document.getElementById('modalContent')) return;
     const client=getClient();
@@ -125,11 +149,24 @@
         originalOpen(id);
         const host=document.getElementById('modalContent');
         if(!host) return;
+        const blank=prepareExactTeacherBlank(host);
+
+        const q=await client.from('submissions').select('form_state,photo_paths').eq('id',id).single();
+        if(!q.error&&blank){
+          const restored=restoreExactTeacherCells(blank,q.data&&q.data.form_state);
+          if(restored){
+            const note=document.createElement('div');
+            note.className='muted';
+            note.style.cssText='margin:8px 0 0;text-align:center';
+            note.textContent='Символы показаны ровно в тех клетках, в которых их ввёл ученик.';
+            blank.appendChild(note);
+          }
+        }
+
         const holder=document.createElement('div');holder.id='photoGalleryTeacher';holder.style.marginTop='14px';holder.innerHTML='<h3>Фотографии решения</h3><div class="muted">Загрузка…</div>';
         host.appendChild(holder);
-        const q=await client.from('submissions').select('photo_paths').eq('id',id).single();
         if(q.error){holder.innerHTML='<h3>Фотографии решения</h3><div class="muted">'+esc(q.error.message)+'</div>';return}
-        const paths=Array.isArray(q.data?.photo_paths)?q.data.photo_paths:[];
+        const paths=Array.isArray(q.data&&q.data.photo_paths)?q.data.photo_paths:[];
         if(!paths.length){holder.innerHTML='<h3>Фотографии решения</h3><div class="muted">Фотографии не прикреплены.</div>';return}
         const signed=await client.storage.from(BUCKET).createSignedUrls(paths,3600);
         if(signed.error){holder.innerHTML='<h3>Фотографии решения</h3><div class="muted">'+esc(signed.error.message)+'</div>';return}
