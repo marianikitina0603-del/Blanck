@@ -10,7 +10,7 @@
     if(!window.supabase||!cfg.supabaseUrl||!cfg.supabaseAnonKey) return null;
     return window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
   }
-  function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[m]))}
   function textOf(box){return [...box.querySelectorAll('.cell')].map(x=>x.value).join('').trim()}
   function field(name){const b=document.querySelector('[data-field="'+name+'"]');return b?textOf(b):''}
   function collectStudentData(){
@@ -41,6 +41,8 @@
     if(!sendBtn||!sendbox) return;
     const client=getClient();
     let selected=[];
+    let sending=false;
+    let submitted=false;
 
     const style=document.createElement('style');
     style.textContent=`
@@ -50,6 +52,7 @@
       .photo-count{font-size:13px;font-weight:700}.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px}
       .photo-item{position:relative;border:1px solid #ddd;border-radius:9px;padding:6px;background:#fafafa}.photo-item img{width:100%;height:90px;object-fit:cover;border-radius:6px;display:block}
       .photo-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:5px}.photo-remove{position:absolute;right:4px;top:4px;width:24px;height:24px;border:0;border-radius:50%;background:#a9362a;color:#fff;cursor:pointer;font-weight:700}
+      #sendBtn:disabled{opacity:.65;cursor:not-allowed}
       @media print{.photo-card{display:none!important}}
     `;
     document.head.appendChild(style);
@@ -69,11 +72,12 @@
         item.innerHTML=`<button type="button" class="photo-remove" title="Удалить">×</button><img alt="Фото ${i+1}"><div class="photo-name">${esc(f.name)}</div>`;
         item.querySelector('img').src=url;
         item.querySelector('img').onload=()=>URL.revokeObjectURL(url);
-        item.querySelector('.photo-remove').onclick=()=>{selected.splice(i,1);render()};
+        item.querySelector('.photo-remove').onclick=()=>{if(sending||submitted)return;selected.splice(i,1);render()};
         grid.appendChild(item);
       });
     }
     input.addEventListener('change',()=>{
+      if(sending||submitted){input.value='';return}
       const incoming=[...input.files];
       for(const f of incoming){
         if(!f.type.startsWith('image/')){alert('Файл «'+f.name+'» не является изображением.');continue}
@@ -85,8 +89,11 @@
     });
 
     sendBtn.onclick=async()=>{
-      const data=collectStudentData();
       const msg=document.getElementById('msg');
+      if(submitted){msg.textContent='Эта работа уже отправлена. Для новой работы обновите страницу.';return}
+      if(sending){msg.textContent='Работа уже отправляется. Подождите…';return}
+
+      const data=collectStudentData();
       if(!data.student_surname||!data.student_name||!data.student_class){msg.textContent='Заполните фамилию, имя и класс';return}
 
       const missingAnswers=[];
@@ -98,9 +105,10 @@
       }
 
       if(!client){msg.textContent='База ещё не подключена учителем';return}
+      sending=true;
       const workId=crypto.randomUUID();
       const paths=[];
-      sendBtn.disabled=true;sendBtn.textContent='Отправка…';
+      sendBtn.disabled=true;input.disabled=true;sendBtn.textContent='Отправка…';
       try{
         for(let i=0;i<selected.length;i++){
           sendBtn.textContent='Фото '+(i+1)+'/'+selected.length+'…';
@@ -117,11 +125,22 @@
         if(ins.error) throw ins.error;
         localStorage.removeItem('oge_blank_draft');
         selected=[];render();
+        submitted=true;
         msg.textContent='Работа отправлена. № '+workId.slice(0,8);
+        sendBtn.textContent='Работа отправлена';
+        sendBtn.disabled=true;
+        input.disabled=true;
         alert('Работа успешно отправлена учителю. Номер: '+workId.slice(0,8));
       }catch(err){
-        console.error(err);msg.textContent='Ошибка отправки: '+(err.message||String(err));
-      }finally{sendBtn.disabled=false;sendBtn.textContent='Отправить учителю'}
+        console.error(err);
+        msg.textContent='Ошибка отправки: '+(err.message||String(err));
+        sendBtn.disabled=false;
+        input.disabled=false;
+        sendBtn.textContent='Отправить учителю';
+      }finally{
+        sending=false;
+        if(!submitted){sendBtn.disabled=false;input.disabled=false}
+      }
     };
   }
 
