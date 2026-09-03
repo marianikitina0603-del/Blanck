@@ -13,4 +13,8 @@ window.addEventListener('DOMContentLoaded', function(){
     document.body.appendChild(viewer);
   };
   document.body.appendChild(script);
+
+  var docHint = document.createElement('script');
+  docHint.src = 'document-hint.js?v=1';
+  document.body.appendChild(docHint);
 });
