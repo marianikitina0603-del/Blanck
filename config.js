@@ -7,5 +7,10 @@ window.BLANCK_CONFIG = {
 window.addEventListener('DOMContentLoaded', function(){
   var script = document.createElement('script');
   script.src = 'photo-enhancements.js?v=1';
+  script.onload = function(){
+    var viewer = document.createElement('script');
+    viewer.src = 'photo-viewer.js?v=1';
+    document.body.appendChild(viewer);
+  };
   document.body.appendChild(script);
 });
