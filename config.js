@@ -8,11 +8,16 @@ window.addEventListener('DOMContentLoaded', function(){
   var page=(location.pathname.split('/').pop()||'index.html').toLowerCase();
   if(page==='oge.html' || page==='teacher.html'){
     var script = document.createElement('script');
-    script.src = 'photo-enhancements.js?v=2';
+    script.src = 'photo-enhancements.js?v=3';
     script.onload = function(){
       if(page==='teacher.html'){
         var viewer = document.createElement('script');
-        viewer.src = 'photo-viewer.js?v=2';
+        viewer.src = 'photo-viewer.js?v=3';
+        viewer.onload=function(){
+          var ege=document.createElement('script');
+          ege.src='teacher-ege.js?v=1';
+          document.body.appendChild(ege);
+        };
         document.body.appendChild(viewer);
       }
     };
@@ -20,7 +25,7 @@ window.addEventListener('DOMContentLoaded', function(){
   }
   if(page==='oge.html'){
     var docHint = document.createElement('script');
-    docHint.src = 'document-hint.js?v=2';
+    docHint.src = 'document-hint.js?v=3';
     document.body.appendChild(docHint);
   }
 });
